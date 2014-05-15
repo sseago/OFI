@@ -3,7 +3,7 @@ module Staypuft::Concerns::HostgroupExtensions
 
   included do
     has_one :deployment_role_hostgroup, :dependent => :destroy, :class_name => 'Staypuft::DeploymentRoleHostgroup'
-    has_one :parent_deployment, :through => :deployment_role_hostgroup, :class_name => 'Staypuft::Deployment'
+    has_one :parent_deployment, :through => :deployment_role_hostgroup, :class_name => 'Staypuft::Deployment', :source => :deployment
     has_one :role, :through => :deployment_role_hostgroup, :class_name => 'Staypuft::Role'
 
     has_one :deployment, :class_name => 'Staypuft::Deployment', through: :deployment_role_hostgroup
@@ -37,7 +37,11 @@ module Staypuft::Concerns::HostgroupExtensions
   def set_param_value_if_changed(puppetclass, key, value)
     lookup_key    = puppetclass.class_params.where(:key => key).first
     current_value = current_param_value(lookup_key)[0]
-    new_value     = current_value.is_a?(Array) ? value.split(", ") : value
+    if current_value.is_a?(Array)
+      new_value     = (value.nil? ? [] : value.split(", "))
+    else
+      new_value     = value
+    end
     unless current_value == new_value
       lookup       = LookupValue.where(:match         => hostgroup.send(:lookup_value_match),
                                        :lookup_key_id => lookup_key.id).first_or_initialize
